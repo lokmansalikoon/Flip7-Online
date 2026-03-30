@@ -1,0 +1,5 @@
+{
+  "name": "Flip 7 Online",
+  "description": "A push-your-luck card game where you flip cards to score points without duplicates. Play against bots or join real-time multiplayer rooms.",
+  "requestFramePermissions": []
+}
