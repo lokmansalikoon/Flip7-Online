@@ -32,11 +32,12 @@ interface GameState {
   status: 'LOBBY' | 'PLAYING' | 'GAME_OVER';
   winnerId: string | null;
   logs: string[];
+  isBusting: boolean;
 }
 
 // --- Components ---
 
-const CardView = ({ card, isNew }: { card: Card, isNew?: boolean, key?: string }) => {
+const CardView = ({ card, isNew, isDuplicate }: { card: Card, isNew?: boolean, isDuplicate?: boolean, key?: string }) => {
   const getCardContent = () => {
     if (typeof card.type === 'number') {
       return (
@@ -60,6 +61,7 @@ const CardView = ({ card, isNew }: { card: Card, isNew?: boolean, key?: string }
 
   const getCardColor = () => {
     if (typeof card.type === 'number') {
+      if (isDuplicate) return 'bg-rose-500 text-white border-rose-600 shadow-lg shadow-rose-500/50';
       if (card.type <= 4) return 'bg-slate-100 text-slate-800 border-slate-300';
       if (card.type <= 8) return 'bg-blue-100 text-blue-800 border-blue-300';
       return 'bg-indigo-100 text-indigo-800 border-indigo-300';
@@ -190,6 +192,10 @@ export default function App() {
 
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const isMyTurn = currentPlayer?.id === socket?.id;
+
+  // Find duplicates for highlighting
+  const numbers = currentPlayer?.currentTurnCards.filter(c => typeof c.type === 'number') || [];
+  const duplicateTypes = numbers.filter((c, index) => numbers.findIndex(n => n.type === c.type) !== index).map(c => c.type);
 
   return (
     <div className="h-screen bg-[#E4E3E0] font-sans text-black flex flex-col md:flex-row overflow-hidden relative">
@@ -327,6 +333,7 @@ export default function App() {
                       <CardView 
                         card={card} 
                         isNew={i === currentPlayer.currentTurnCards.length - 1} 
+                        isDuplicate={gameState.isBusting && duplicateTypes.includes(card.type)}
                       />
                     </div>
                   ))}
@@ -340,7 +347,18 @@ export default function App() {
             </div>
 
             {/* Controls */}
-            <div className="h-24 md:h-32 flex items-center justify-center gap-3 md:gap-4 mt-auto">
+            <div className="h-24 md:h-32 flex items-center justify-center gap-3 md:gap-4 mt-auto relative">
+              {gameState.isBusting && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1.2 }}
+                  className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
+                >
+                  <div className="bg-rose-600 text-white px-8 py-4 rounded-2xl font-black text-4xl italic tracking-tighter shadow-2xl shadow-rose-600/50 rotate-[-5deg]">
+                    BUST!
+                  </div>
+                </motion.div>
+              )}
               {gameState.status === 'GAME_OVER' ? (
                 <div className="text-center">
                   <h2 className="text-2xl md:text-3xl font-black italic mb-4">

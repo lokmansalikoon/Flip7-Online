@@ -35,6 +35,7 @@ interface GameState {
   status: 'LOBBY' | 'PLAYING' | 'GAME_OVER';
   winnerId: string | null;
   logs: string[];
+  isBusting: boolean;
 }
 
 const WINNING_SCORE = 200;
@@ -95,7 +96,8 @@ async function startServer() {
           discardPile: [],
           status: 'LOBBY',
           winnerId: null,
-          logs: ["Game lobby created."]
+          logs: ["Game lobby created."],
+          isBusting: false
         };
         rooms.set(roomId, room);
       }
@@ -206,12 +208,18 @@ async function startServer() {
           room.logs.push(`${player.name} used Second Chance to avoid bust!`);
         } else {
           room.logs.push(`${player.name} busted!`);
-          player.currentTurnCards.forEach(c => room.discardPile.push(c));
-          player.currentTurnCards = [];
-          player.isDoubled = false;
-          player.hasSecondChance = false;
-          nextTurn(room);
+          room.isBusting = true;
           io.to(room.id).emit("game_state", room);
+
+          setTimeout(() => {
+            player.currentTurnCards.forEach(c => room.discardPile.push(c));
+            player.currentTurnCards = [];
+            player.isDoubled = false;
+            player.hasSecondChance = false;
+            room.isBusting = false;
+            nextTurn(room);
+            io.to(room.id).emit("game_state", room);
+          }, 3000);
           return;
         }
       }
